@@ -9,3 +9,6 @@ Eine Anwendung zum rekursiven Durchsuchen von Dateiinhalten in einem ausgewählt
 
 - **PDF-Suche** - Speziell: Suche nach Kundennummern in PDF-Dateien im PDF selbst
 - - **optional OCR-Integration** - Texterkennung in PNG-Bildern mit pytesseract
+
+## Screenshot App Main Page
+![exampleApp.png](exampleApp.png)
