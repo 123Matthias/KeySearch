@@ -21,11 +21,13 @@ class ExplorerService:
         if recursive:
             # Rekursive Suche mit os.walk
             for root, dirs, filenames in os.walk(directory):
+
                 for filename in filenames:
                     filepath = os.path.join(root, filename)
 
                     if not keyword_list:
                         files.append(filepath)
+                        self.progress_hits = len(files)
                     else:
                         # Prüfen ob eines der Keywords im Dateinamen vorkommt
                         file_lower = filename.lower()
@@ -56,3 +58,10 @@ class ExplorerService:
     def normalize_text(self, text):
         """Wandle in NFC-Form um (ü als ein Zeichen)"""
         return unicodedata.normalize('NFC', text)
+
+
+    def count_files(self, path):
+        count = 0
+        for root, dirs, files in os.walk(path):
+            count += len(files)
+        return count
