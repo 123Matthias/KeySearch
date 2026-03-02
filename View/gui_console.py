@@ -49,9 +49,9 @@ class GUIConsole:
                     self.text_widget.configure(state='disabled')
                     self.buffer.clear()
 
-            self.parent.after(100, process)
+            self.parent.after(2000, process)
 
-        self.parent.after(100, process)
+        self.parent.after(2000, process)
 
     def write(self, text):
         """Wird von print aufgerufen"""
