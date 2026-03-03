@@ -180,7 +180,7 @@ class MainPageController:
             print("kein Pfad ausgewählt")
             return
         if not keywords:
-            print("gib einen Suchberiff ein ein")
+            print("gib einen Suchberiff ein")
             return
 
         if self.search_thread and self.search_thread.is_alive():
@@ -213,10 +213,13 @@ class MainPageController:
         try:
             # Dateien sammeln (mit Cache)
             if not self.all_files_cache:
+                print("sammle pfade")
                 all_files = self._collect_files()
                 self.all_files_cache = all_files
+                print("Pfade sammeln erledigt")
             else:
                 all_files = self.all_files_cache
+                print("verwende cache auch letzter Suche für Path")
 
             if not all_files:
                 print("Keine Dateien gefunden")
@@ -232,7 +235,7 @@ class MainPageController:
             # Dateinamen-Treffer sofort anzeigen
             for dateipfad in treffer_set:
                 if cancel_thread_event.is_set(): # Wenn Stop kommt, dann soll Thread nicht weiter arbeiten
-                    print("Breche ab " + threading.current_thread().name + "in for Schleife for dateipfad in treffer_set ...")
+                    print("abbrechen " + threading.current_thread().name + "in for Schleife for dateipfad in treffer_set ...")
                     return
                 dateiname = os.path.basename(dateipfad)
                 rel_pfad = os.path.relpath(dateipfad, self.view.basis_pfad)
