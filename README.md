@@ -19,8 +19,7 @@ Ein Release zum Installieren sollte es bis 04 2026 geben.
 ## TODOs bis Release
 - print Terminal Ausgaben unvollständig
 - Code Review und Kommentierung
-- Keyword Suche hat noch kein Ranking beste treffer oben ...
-- Wenn nur ein Keyword im Filename gefunden wird und es gibt mehrere, dann dennoch Inhalt mitdurchsuchen
+- Filename oder Filename mit Content durchsuchen Auswahl checkbox 
 
 ## Screenshot App Main Page
 ### PySide (enthällt auch QSS zum Stylen) und wird für die App jetzt verwendet
