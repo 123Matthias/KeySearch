@@ -5,13 +5,22 @@ from Controller.main_page_controller import MainPageController
 from Service.font_awesome_service import FontAwesomeService
 import sys
 
+from View.theme_manager import ThemeManager
+
 
 class Main:
     def __init__(self):
         self.main_page_controller = MainPageController()
         self.main_page = PySideMainPage(self.main_page_controller)
+
+
+        print("🎨 Initialisiere ThemeManager...")
+        ThemeManager().initialize(self.main_page.app)
+
         self.font_awesome_7 = FontAwesomeService.load_font_awesome_free()
         self.python_font = FontAwesomeService.load_python_selfmade()
+
+
 
     def run(self):
         """Startet die PySide6 App"""

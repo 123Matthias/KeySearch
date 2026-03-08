@@ -18,6 +18,7 @@ from Controller.main_page_controller import MainPageController
 from Service.explorer_service import ExplorerService
 
 from View.gui_console import GUIConsole
+from View.theme_manager import ThemeManager
 
 
 class AnimatedToggle(QPushButton):
@@ -26,36 +27,49 @@ class AnimatedToggle(QPushButton):
         self.setCheckable(True)
         self.setFixedSize(40, 40)
 
-        # Basis-Styling (ohne Farb-Animation)
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #2c2c2c;
-                border: 2px solid #3c3c3c;
-                border-radius: 20px;
-                font-family: "Font Awesome 7 Free", "Font Awesome 6 Free", "FontAwesome", "Arial";
-                font-size: 16px;
-                color: white;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #3c3c3c;
-                border: 2px solid #00bc8c;
-            }
-            QPushButton:pressed {
-                background-color: #1c1c1c;
-            }
-            QPushButton:checked {
-                background-color: #f39c12;  /* Orange wenn aktiv */
-                border: 2px solid #f39c12;
-            }
-            QPushButton:checked:hover {
-                background-color: #e67e22;
-                border: 2px solid #e67e22;
-            }
-        """)
+        # RICHTIG: Als Observer registrieren
+        self.theme_manager = ThemeManager()
+        self.theme_manager.register_observer(self)
+
+        # Initiale Farben
+        self.colors = self.theme_manager.get_colors()
+        self.update_style()
 
         self.setText("\uf120")
 
+    def on_theme_changed(self):
+        """Wird bei Theme-Wechsel aufgerufen"""
+        self.colors = self.theme_manager.get_colors()
+        self.update_style()
+
+    def update_style(self):
+        """Style mit aktuellen Farben aktualisieren"""
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors.UI.INPUT_BG.name()};
+                border: 2px solid {self.colors.UI.INPUT_BORDER.name()};
+                border-radius: 20px;
+                font-family: "Font Awesome 7 Free", "Font Awesome 6 Free", "FontAwesome", "Arial";
+                font-size: 16px;
+                color: {self.colors.Text.PRIMARY.name()};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.UI.INPUT_BORDER.name()};
+                border: 2px solid {self.colors.Primary.MAIN.name()};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.colors.UI.CARD_BG.name()};
+            }}
+            QPushButton:checked {{
+                background-color: {self.colors.Secondary.MAIN.name()};
+                border: 2px solid {self.colors.Secondary.MAIN.name()};
+            }}
+            QPushButton:checked:hover {{
+                background-color: {self.colors.Secondary.LIGHT.name()};
+                border: 2px solid {self.colors.Secondary.LIGHT.name()};
+            }}
+        """)
 
 
 class SearchResultCard(QFrame):
@@ -80,20 +94,13 @@ class SearchResultCard(QFrame):
         self.rel_path = rel_path
         self.priority = priority
 
-        self.setStyleSheet("""
-            #resultCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1c1c1c, stop:1 #1a1a1a);
-                border: 1px solid #3c3c3c;
-                border-radius: 8px;
-                margin: 4px 0px;
-                max-width: 1200px;
-                min-width: 600px;
-            }
-            #resultCard:hover {
-                border-left: 3px solid #00bc8c;
-            }
-        """)
+        # RICHTIG: Als Observer registrieren
+        self.theme_manager = ThemeManager()
+        self.theme_manager.register_observer(self)
+
+        # Initiale Farben
+        self.colors = self.theme_manager.get_colors()
+
 
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
@@ -103,24 +110,10 @@ class SearchResultCard(QFrame):
         self.title_label = QLabel()
         self.title_label.setTextFormat(Qt.RichText)
         self.title_label.setText(self.highlight_words(title))
-        self.title_label.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #00bc8c;
-            background-color: none;
-        """)
         title_layout.addWidget(self.title_label)
         title_layout.addStretch()
 
         badge = QLabel(treffer_typ.upper())
-        badge.setStyleSheet("""
-            background-color: none;
-            color: #00bc8c;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-        """)
         title_layout.addWidget(badge)
         layout.addLayout(title_layout)
 
@@ -129,13 +122,57 @@ class SearchResultCard(QFrame):
         self.body_label.setWordWrap(True)
         self.body_label.setTextFormat(Qt.RichText)
         self.body_label.setText(self.highlight_words(body))
-        self.body_label.setStyleSheet("""
-            color: #b0b0b0;
+        layout.addWidget(self.body_label)
+
+        self.update_style() # Style Update immer am Ende
+
+    def on_theme_changed(self):
+        """Wird bei Theme-Wechsel aufgerufen"""
+        self.colors = self.theme_manager.get_colors()
+        self.update_style()
+
+    def update_style(self):
+        """Style mit aktuellen Farben aktualisieren"""
+        self.setStyleSheet(f"""
+            #resultCard {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {self.colors.UI.CARD_BG_GRADIENT_START.name()}, 
+                    stop:1 {self.colors.UI.CARD_BG_GRADIENT_END.name()});
+                border: 1px solid {self.colors.UI.INPUT_BORDER.name()};
+                border-radius: 8px;
+                margin: 4px 0px;
+                max-width: 1200px;
+                min-width: 600px;
+            }}
+            #resultCard:hover {{
+                border-left: 3px solid {self.colors.Primary.MAIN.name()};
+            }}
+        """)
+
+        self.title_label.setStyleSheet(f"""
+            font-size: 16px;
+            font-weight: bold;
+            color: {self.colors.Primary.MAIN.name()};
+            background-color: none;
+        """)
+
+        # Badge (falls du einen Zugriff darauf brauchst - hier müsstest du badge als Instanzvariable speichern)
+        if hasattr(self, 'badge'):
+            self.badge.setStyleSheet(f"""
+                background-color: none;
+                color: {self.colors.Primary.MAIN.name()};
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+            """)
+
+        self.body_label.setStyleSheet(f"""
+            color: {self.colors.Text.SECONDARY.name()};
             font-size: 13px;
             padding: 4px 4px;
             background-color: none;
         """)
-        layout.addWidget(self.body_label)
 
     def mousePressEvent(self, event):
         self.clicked.emit(self.rel_path)
@@ -153,31 +190,37 @@ class MainPage(QMainWindow):
         # Service-Instanz
         self.explorer_service = ExplorerService()
 
+        # ThemeManager holen und ALS OBSERVER REGISTRIEREN
+        self.theme_manager = ThemeManager()
+        self.theme_manager.register_observer(self)
+
+        # Einmal die aktuellen Farben holen
+        self.colors = self.theme_manager.get_colors()
+
         # Fenster-Setup
         self.setWindowTitle("")
         self.setMinimumSize(1000, 700)
 
         # Zentrales Widget und Hauptlayout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(15)
-        main_layout.setContentsMargins(30, 30, 30, 30)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setSpacing(15)
+        self.main_layout.setContentsMargins(30, 30, 30, 30)
 
         # Header mit animiertem Titel
-        self.setup_header(main_layout)
+        self.setup_header(self.main_layout)
 
         # Fortschrittsleiste und Toggle
-        self.setup_progress_section(main_layout)
+        self.setup_progress_section(self.main_layout)
 
         # Pfad-Anzeige
-        self.setup_path_label(main_layout)
+        self.setup_path_label(self.main_layout)
 
         # Haupt-Splitter für Ergebnisse und Konsole
-        self.setup_main_splitter(main_layout)
+        self.setup_main_splitter(self.main_layout)
 
-        # Styling anwenden
-        self.apply_modern_style()
+
 
         # Variablen für Animationen
         self.console_visible = True
@@ -186,6 +229,8 @@ class MainPage(QMainWindow):
 
         # Keyboard Shortcuts
         self.setup_keyboard_shortcuts()
+
+        self.update_all_widgets_style() # Alle Gui Elemente Style laden
 
     def setup_keyboard_shortcuts(self):
         """Keyboard-Navigation einrichten"""
@@ -216,79 +261,40 @@ class MainPage(QMainWindow):
         title_layout.setSpacing(2)
         title_layout.setContentsMargins(0, 0, 0, 0)
 
+        colors = ThemeManager().get_colors()
+        self.key_label = QLabel("Key")
 
-        key_label = QLabel("Key")
-        key_label.setStyleSheet("""
-            font-size: 36px;
-            font-weight: bold;
-            color: #00bc8c;
-            margin: 0;
-            padding: 0;
-        """)
         s_label = QLabel()
         s_label.setPixmap(QPixmap("assets/img/pythonFett.png").scaled(
             36, 36,
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         ))
-        s_label.setStyleSheet("""
-            width: 36px;
-            height: 36px;
-            margin: 0; 
-            padding: 0;
-        """)
 
-        eek_label = QLabel("eek")
-        eek_label.setStyleSheet("""
-            font-size: 36px;
-            font-weight: bold;
-            color: #f39c12;
-            margin: 0;
-            padding: 0;
-        """)
+        self.eek_label = QLabel("eek")
 
-        title_layout.addWidget(key_label)
+
+        title_layout.addWidget(self.key_label)
         title_layout.addWidget(s_label)
-        title_layout.addWidget(eek_label)
+        title_layout.addWidget(self.eek_label)
         title_layout.addStretch()
 
         header_layout.addWidget(title_widget)
 
+        # Lupe
+        self.search_icon_keywords = QLabel("\uf002")
+        self.search_icon_keywords.setFixedSize(30, 30)  # Breite/Höhe fix
+        self.search_icon_keywords.setAlignment(Qt.AlignCenter)
 
-        #Lupe
-        self.search_label = QLabel("\uf002")
-        self.search_label.setFixedSize(30, 30)  # Breite/Höhe fix
-        self.search_label.setAlignment(Qt.AlignCenter)
-        self.search_label.setStyleSheet("""
-        QLabel {
-            font-family: Font Awesome 7 Free;
-            font-size: 20px;
-        }
 
-        """)
-
-        header_layout.addWidget(self.search_label)
+        header_layout.addWidget(self.search_icon_keywords)
 
         # Modernes Suchfeld
         self.keywords_input = QLineEdit()
         self.keywords_input.setPlaceholderText("Suche starten mit Enter")
         self.keywords_input.setMinimumHeight(40)
 
-        self.keywords_input.setStyleSheet("""
-        QLineEdit {
-            background-color: #2c2c2c;
-            border: 2px solid #3c3c3c;
-            border-radius: 20px;
-            padding: auto 8px;
-            font-size: 16px;
-            color: white;
-            font-family: Helvetica, Arial, sans-serif;
-        }
-  
-        QLineEdit:focus {
-            border: 2px solid #00bc8c;
-        }
-        """)
+
         self.keywords_input.returnPressed.connect(self.controller.search)
         header_layout.addWidget(self.keywords_input)
 
@@ -296,26 +302,6 @@ class MainPage(QMainWindow):
         self.btn = QPushButton()
         self.btn.setMinimumHeight(40)
         self.btn.setCursor(Qt.PointingHandCursor)
-        self.btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2c2c2c;
-                border: 2px solid #3c3c3c;
-                border-radius: 20px;
-                padding: 8px 20px;
-                font-size: 14px;
-                color: white;
-                font-weight: bold;
-                font-family: "Font Awesome 7 Free";
-            }
-            QPushButton:hover {
-                background-color: #3c3c3c;
-                border: 2px solid #00bc8c;
-                color: #00bc8c;
-            }
-            QPushButton:pressed {
-                background-color: #1c1c1c;
-            }
-        """)
 
         self.btn.setText("\uf07b")
         self.btn.clicked.connect(self.controller.choose_path)
@@ -325,48 +311,30 @@ class MainPage(QMainWindow):
 
     def setup_progress_section(self, parent_layout):
         """Fortschrittsleiste mit Toggle-Button und Loading-Indicator"""
-        progress_widget = QWidget()
-        progress_layout = QHBoxLayout(progress_widget)
-        progress_layout.setSpacing(10)
+        self.progress_widget = QWidget()
+        self.progress_layout = QHBoxLayout(self.progress_widget)
+        self.progress_layout.setSpacing(10)
 
         # Animierter Toggle-Button
         self.console_toggle_btn = AnimatedToggle()
         self.console_toggle_btn.setChecked(False)
         self.console_toggle_btn.toggled.connect(self.toggle_console)
-        progress_layout.addWidget(self.console_toggle_btn)
+        self.progress_layout.addWidget(self.console_toggle_btn)
 
         # Fortschrittsleiste
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimumHeight(3)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                background-color: #2e2e2e;
-                border: 1px solid #2c2c2c;
-                border-radius: 4px;
-                height: 5px;
-                max-height: 5px;
-            }
-            QProgressBar::chunk {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00bc8c, stop:1 #f39c12);
-                border-radius: 4px;
-            }
-        """)
-        progress_layout.addWidget(self.progress_bar)
 
-        # Loading-Status Label
-        self.search_label = QLabel()
-        self.search_label.setStyleSheet("""
-            color: #f39c12;
-            font-size: 12px;
-            font-weight: bold;
-            min-width: 150px;
-        """)
-        self.search_label.setVisible(False)
-        progress_layout.addWidget(self.search_label)
+        # Loading-Status Label - NEU!
+        self.loading_label = QLabel()  # <-- Hier muss es wieder rein!
+        self.loading_label.setVisible(False)
+        self.progress_layout.addWidget(self.loading_label)
 
-        parent_layout.addWidget(progress_widget)
+        self.progress_layout.addWidget(self.progress_bar)
+
+
+        parent_layout.addWidget(self.progress_widget)
 
     def setup_path_label(self, parent_layout):
         """Pfad-Anzeige mit gekürzte langen Pfade"""
@@ -377,24 +345,7 @@ class MainPage(QMainWindow):
         self.text_label = QLabel("Suchpfad: ")
         self.pfad_label = QLabel("Kein Pfad gewählt")
 
-        # Tippfehler korrigiert: px durch 0px ersetzt
-        self.text_label.setStyleSheet("""
-        QLabel {
-            font-size: 14px;
-            padding: 0px 0px 0px 0px;
-            margin: 0px 0px 0px 0px;
-            color: #b0b0b0;
-            }
-        """)
 
-        self.pfad_label.setStyleSheet("""
-        QLabel {
-            color: #b0b0b0;
-            font-size: 14px;
-            padding: 0px 0px 0px 0px;
-            margin: 0px 0px 0px 0px;
-            }
-        """)
 
         self.h_box_path.addWidget(self.text_label)
         self.h_box_path.addWidget(self.pfad_label)
@@ -414,47 +365,19 @@ class MainPage(QMainWindow):
         self.splitter.addWidget(self.console_container)
         self.splitter.setSizes([500, 200])
         self.splitter.setHandleWidth(8)
-        self.splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #2c2c2c;
-                border-radius: 4px;
-            }
-            QSplitter::handle:hover {
-                background-color: #3c3c3c;
-            }
-        """)
+
 
         parent_layout.addWidget(self.splitter)
 
-        self.toggle_console(False) # Nachdem es den Splitter gibt soll er togglen damit Console unsichtbar ist.
+        self.toggle_console(False)  # Nachdem es den Splitter gibt soll er togglen damit Console unsichtbar ist.
 
     def setup_results_area(self):
         """Scrollbarer Bereich für Ergebnisse mit Empty State"""
+        colors = ThemeManager().get_colors()
         self.results_scroll = QScrollArea()
         self.results_scroll.setWidgetResizable(True)
         self.results_scroll.setFrameStyle(QFrame.NoFrame)
-        self.results_scroll.setStyleSheet("""
-            QScrollArea {
-                background-color: #1e1e1e;
-                border: none;
-            }
-            QScrollBar:vertical {
-                background-color: #2c2c2c;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #00bc8c;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #f39c12;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                border: none;
-                background: none;
-            }
-        """)
+
 
         self.results_container = QWidget()
         self.results_layout = QVBoxLayout(self.results_container)
@@ -465,12 +388,7 @@ class MainPage(QMainWindow):
         # Empty State Label (wird beim Hinzufügen von Ergebnissen versteckt)
         self.empty_state_label = QLabel("Noch keine Suchergebnisse...")
         self.empty_state_label.setAlignment(Qt.AlignCenter)
-        self.empty_state_label.setStyleSheet("""
-            color: #666666;
-            font-size: 16px;
-            padding: 40px auto;
-            font-style: italic;
-        """)
+
         self.results_layout.addWidget(self.empty_state_label)
 
         self.results_scroll.setWidget(self.results_container)
@@ -484,14 +402,7 @@ class MainPage(QMainWindow):
 
         # Konsolen-Label mit Icon
         console_label = QLabel("📟 Konsole")
-        console_label.setStyleSheet("""
-            color: #f39c12;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 8px 12px;
-            background-color: #2c2c2c;
-            border-bottom: 1px solid #3c3c3c;
-        """)
+
         console_layout.addWidget(console_label)
 
         # GUIConsole direkt einbetten
@@ -502,35 +413,6 @@ class MainPage(QMainWindow):
         # Stelle sicher, dass die Console beim Schließen restored wird
         self.destroyed.connect(self.console.restore)
 
-    def apply_modern_style(self):
-        """Style für die gesamte App in QSS"""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-            }
-            QWidget {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                font-family: 'Arial', 'Helvetica', sans-serif;
-            }
-            QLabel {
-                color: #ffffff;
-            }
-            QPushButton {
-                background-color: #2c2c2c;
-                border: 1px solid #3c3c3c;
-                border-radius: 4px;
-                padding: 6px 12px;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #3c3c3c;
-                border: 1px solid #00bc8c;
-            }
-            QPushButton:pressed {
-                background-color: #1c1c1c;
-            }
-        """)
 
     def toggle_console(self, checked):
         """Konsole ein-/ausblenden mit Animation"""
@@ -545,12 +427,24 @@ class MainPage(QMainWindow):
 
     def set_search_loading(self, is_loading: bool):
         """Loading-Status anzeigen/verstecken"""
-        if is_loading:
-            self.search_label.setText("🔄 Suche läuft...")
-            self.search_label.setVisible(True)
-            self.progress_bar.setValue(0)
-        else:
-            self.search_label.setVisible(False)
+        if hasattr(self, 'loading_label'):  # <-- Sicherheitscheck
+            if is_loading:
+                self.loading_label.setText("🔄 Suche läuft...")  # <-- loading_label
+                self.loading_label.setVisible(True)
+                self.progress_bar.setValue(0)
+            else:
+                self.loading_label.setVisible(False)
+
+    def show_status(self, message, typ="info"):
+        """Status anzeigen (angepasst für PySide)"""
+        status_text = f"[{typ.upper()}] {message}"
+        print(status_text)
+
+        if typ == "error" and hasattr(self, 'loading_label'):
+            self.loading_label.setText(f"❌ {message}")  # <-- loading_label
+            self.loading_label.setVisible(True)
+            # Auto-hide nach 5 Sekunden
+            QTimer.singleShot(5000, lambda: self.loading_label.setVisible(False))
 
     def add_result(self, priority, title, body, treffer_typ, abs_path):
         """Ergebnis als moderne Karte hinzufügen"""
@@ -581,7 +475,6 @@ class MainPage(QMainWindow):
         self.results_container.updateGeometry()
         self.results_container.repaint()
         self.results_scroll.repaint()
-
 
         # Optional: Kleines Debug
         print(f"📊 Ergebnisse neu gerendert: {self.result_count} Karten")
@@ -636,8 +529,6 @@ class MainPage(QMainWindow):
         except Exception as e:
             print(f"❌ Fehler beim Öffnen: {e}")
 
-
-
     def clear_results(self):
         """Alle Ergebnisse löschen"""
 
@@ -684,6 +575,272 @@ class MainPage(QMainWindow):
         self.pfad_label.setText(f"📂 {display_path}")
         self.pfad_label.setToolTip(path)  # Full Path im Tooltip
 
+
+
+    # ===== ALLE UPDATE METHODEN FÜR EINZELNE WIDGETS =====
+
+    def update_key_label_style(self):
+        """Aktualisiert den Key-Label Style"""
+        if hasattr(self, 'key_label'):
+            self.key_label.setStyleSheet(f"""
+                font-size: 36px;
+                font-weight: bold;
+                color: {self.colors.Primary.MAIN.name()};
+                margin: 0;
+                padding: 0;
+            """)
+
+    def update_eek_label_style(self):
+        """Aktualisiert den Eek-Label Style"""
+        if hasattr(self, 'eek_label'):
+            self.eek_label.setStyleSheet(f"""
+                font-size: 36px;
+                font-weight: bold;
+                color: {self.colors.Secondary.MAIN.name()};
+                margin: 0;
+                padding: 0;
+            """)
+
+    def update_search_icon_style(self):
+        """Aktualisiert den Such-Label (Lupe) Style"""
+        if hasattr(self, 'search_icon_keywords'):
+            self.search_icon_keywords.setStyleSheet("""
+                QLabel {
+                    font-family: Font Awesome 7 Free;
+                    font-size: 20px;
+                }
+            """)
+
+    def update_keywords_input_style(self):
+        """Aktualisiert das Suchfeld Style"""
+        if hasattr(self, 'keywords_input'):
+            self.keywords_input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {self.colors.UI.INPUT_BG.name()};
+                    border: 2px solid {self.colors.UI.INPUT_BORDER.name()};
+                    border-radius: 20px;
+                    padding: auto 8px;
+                    font-size: 16px;
+                    color: {self.colors.Text.PRIMARY.name()};
+                    font-family: Helvetica, Arial, sans-serif;
+                }}
+                QLineEdit:focus {{
+                    border: 2px solid {self.colors.Primary.MAIN.name()};
+                }}
+            """)
+
+    def update_path_button_style(self):
+        """Aktualisiert den Path-Button Style"""
+        if hasattr(self, 'btn'):
+            self.btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors.UI.INPUT_BG.name()};
+                    border: 2px solid {self.colors.UI.INPUT_BORDER.name()};
+                    border-radius: 20px;
+                    padding: 8px 20px;
+                    font-size: 14px;
+                    color: {self.colors.Text.PRIMARY.name()};
+                    font-weight: bold;
+                    font-family: "Font Awesome 7 Free";
+                }}
+                QPushButton:hover {{
+                    background-color: {self.colors.UI.INPUT_BORDER.name()};
+                    border: 2px solid {self.colors.Primary.MAIN.name()};
+                    color: {self.colors.Primary.MAIN.name()};
+                }}
+                QPushButton:pressed {{
+                    background-color: {self.colors.UI.CARD_BG.name()};
+                }}
+            """)
+
+    def update_progress_bar_style(self):
+        """Aktualisiert die Progress Bar Style"""
+        if hasattr(self, 'progress_bar'):
+            self.progress_bar.setStyleSheet(f"""
+                QProgressBar {{
+                    background-color: {self.colors.UI.INPUT_BG.name()};
+                    border: 1px solid {self.colors.UI.INPUT_BORDER.name()};
+                    border-radius: 4px;
+                    height: 5px;
+                    max-height: 5px;
+                }}
+                QProgressBar::chunk {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 {self.colors.Primary.MAIN.name()}, 
+                        stop:1 {self.colors.Secondary.MAIN.name()});
+                    border-radius: 4px;
+                }}
+            """)
+
+    def update_loading_label_style(self):
+        """Aktualisiert das Loading-Label Style"""
+        if hasattr(self, 'loading_label'):
+            self.loading_label.setStyleSheet(f"""
+                color: {self.colors.Secondary.MAIN.name()};
+                font-size: 12px;
+                font-weight: bold;
+                min-width: 150px;
+            """)
+
+    def update_text_label_style(self):
+        """Aktualisiert das Text-Label (Suchpfad:) Style"""
+        if hasattr(self, 'text_label'):
+            self.text_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: 14px;
+                    padding: 0px 0px 0px 0px;
+                    margin: 0px 0px 0px 0px;
+                    color: {self.colors.Text.SECONDARY.name()};
+                }}
+            """)
+
+    def update_pfad_label_style(self):
+        """Aktualisiert das Pfad-Label Style"""
+        if hasattr(self, 'pfad_label'):
+            self.pfad_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {self.colors.Text.SECONDARY.name()};
+                    font-size: 14px;
+                    padding: 0px 0px 0px 0px;
+                    margin: 0px 0px 0px 0px;
+                }}
+            """)
+
+    def update_splitter_style(self):
+        """Aktualisiert den Splitter Style"""
+        if hasattr(self, 'splitter'):
+            self.splitter.setStyleSheet(f"""
+                QSplitter::handle {{
+                    background-color: {self.colors.UI.SPLITTER_HANDLE.name()};
+                    border-radius: 4px;
+                }}
+                QSplitter::handle:hover {{
+                    background-color: {self.colors.UI.SPLITTER_HANDLE_HOVER.name()};
+                }}
+            """)
+
+    def update_results_scroll_style(self):
+        """Aktualisiert die ScrollArea Style"""
+        if hasattr(self, 'results_scroll'):
+            self.results_scroll.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {self.colors.UI.CONTAINER_BG.name()};
+                    border: none;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {self.colors.UI.INPUT_BG.name()};
+                    width: 12px;
+                    border-radius: 6px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {self.colors.Primary.MAIN.name()};
+                    border-radius: 6px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {self.colors.Secondary.MAIN.name()};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: none;
+                    background: none;
+                }}
+            """)
+
+    def update_empty_state_label_style(self):
+        """Aktualisiert das Empty-State Label Style"""
+        if hasattr(self, 'empty_state_label'):
+            self.empty_state_label.setStyleSheet(f"""
+                color: {self.colors.Text.DISABLED.name()};
+                font-size: 16px;
+                padding: 40px auto;
+                font-style: italic;
+            """)
+
+    def update_console_label_style(self):
+        """Aktualisiert das Konsolen-Label Style"""
+        if hasattr(self, 'console_container'):
+            console_label = self.console_container.findChild(QLabel)
+            if console_label:
+                console_label.setStyleSheet(f"""
+                    color: {self.colors.Secondary.MAIN.name()};
+                    font-size: 12px;
+                    font-weight: bold;
+                    padding: 8px 12px;
+                    background-color: {self.colors.UI.TOOLBAR_BG.name()};
+                    border-bottom: 1px solid {self.colors.UI.INPUT_BORDER.name()};
+                """)
+
+    def update_global_style(self):
+        """Aktualisiert das globale Stylesheet"""
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: {self.colors.UI.CONTAINER_BG.name()};
+            }}
+            QWidget {{
+                background-color: {self.colors.UI.CONTAINER_BG.name()};
+                color: {self.colors.Text.PRIMARY.name()};
+                font-family: 'Arial', 'Helvetica', sans-serif;
+            }}
+            QLabel {{
+                color: {self.colors.Text.PRIMARY.name()};
+            }}
+            QPushButton {{
+                background-color: {self.colors.UI.INPUT_BG.name()};
+                border: 1px solid {self.colors.UI.INPUT_BORDER.name()};
+                border-radius: 4px;
+                padding: 6px 12px;
+                color: {self.colors.Text.PRIMARY.name()};
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.UI.INPUT_BORDER.name()};
+                border: 1px solid {self.colors.Primary.MAIN.name()};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.colors.UI.CARD_BG.name()};
+            }}
+        """)
+
+    # ===== ZENTRALE UPDATE METHODE =====
+
+    def update_all_widgets_style(self):
+        """Aktualisiert ALLE Widget-Styles mit den aktuellen Farben"""
+        print("🔄 Aktualisiere alle Widget-Styles...")
+
+        # Zuerst globales Stylesheet
+        self.update_global_style()
+
+
+        # Dann alle Einzel-Widgets
+        self.update_key_label_style()
+        self.update_eek_label_style()
+        self.update_search_icon_style()
+        self.update_keywords_input_style()
+        self.update_path_button_style()
+        self.update_progress_bar_style()
+        self.update_loading_label_style()
+        self.update_text_label_style()
+        self.update_pfad_label_style()
+        self.update_splitter_style()
+        self.update_results_scroll_style()
+        self.update_empty_state_label_style()
+        self.update_console_label_style()
+
+        print("✅ Alle Widget-Styles aktualisiert")
+
+        # Debug
+
+        print(f"✅ UI aktualisiert mit {self.theme_manager._current_theme} Theme")
+
+
+
+    def on_theme_changed(self):
+        """Wird bei Theme-Wechsel automatisch aufgerufen"""
+        print("🎨 MainPage: Theme wurde geändert, aktualisiere UI...")
+
+        # Neue Farben holen
+        self.colors = self.theme_manager.get_colors()
+
+        # ALLE Widgets updaten
+        self.update_all_widgets_style()
 
 # Für die Integration mit dem existierenden Controller
 class PySideMainPage:
