@@ -1,8 +1,7 @@
 import os
 import sys
 import threading
-from curses.ascii import controlnames
-from pathlib import Path
+
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,

@@ -12,7 +12,7 @@ class ReaderService:
         # Unterstützte Dateiformate (für schnelle Prüfung)
         self.supported_extensions = {
             # Dokumente
-            '.pdf', '.docx', '.doc', '.odt', '.rtf', 'PDF',
+            '.pdf', '.docx', '.doc', '.odt', '.rtf', 'pdf',
             # Tabellen
             '.xlsx', '.xls', '.csv',
             # Präsentationen
@@ -52,7 +52,7 @@ class ReaderService:
             print("DEBUG:" + filepath)
             text_bytes = textract.process(filepath)
             text = text_bytes.decode('utf-8', errors='ignore')
-            print(f"DEBUG: Dekodiert, {len(text)} Zeichen")
+            print(f"DEBUG: Dekodiert, {len(text)} Zeichen, {filepath} FILEPATH")
 
             # Text bereinigen (mehrere Leerzeichen, Zeilenumbrüche)
             text = ' '.join(text.split())
@@ -61,7 +61,7 @@ class ReaderService:
             if len(text) > max_chars:
                 text = text[:max_chars] + "..."
 
-            print(f"DEBUG: Erfolg! {len(text)} Zeichen zurückgegeben")
+            print(f"DEBUG: Erfolg! {len(text)} Zeichen zurückgegeben, {filepath} FILEPATH")
             return text
 
         except Exception as e:

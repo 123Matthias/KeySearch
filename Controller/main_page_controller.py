@@ -1,4 +1,5 @@
 import os
+import platform
 import threading
 import random
 import time
@@ -44,13 +45,21 @@ class MainPageController(QObject):  # QObject für Signal-Support
         self.threads_per_process = 4  # Mehr Threads für I/O TODO User könnte das selbst steuern
         print(f"Performance: {self.num_processes} Prozesse mit je {self.threads_per_process} Threads")
 
+
     def _collect_files(self):
         """Hilfsmethode zum Sammeln der Dateien aus explorer_service.collect_file_info"""
+
         all_files, total = self.explorer_service.collect_file_info(
             self.path_selected_ui,
             self.search_recursive,
             self.cancel_thread_event
         )
+
+        # Alle Pfad-Strings escapen
+        if platform.system() == "Windows":
+            for i in range(len(all_files)):
+                all_files[i] = all_files[i].replace('\\', '\\\\')
+
         return all_files
 
     def set_view(self, view):
@@ -66,17 +75,23 @@ class MainPageController(QObject):  # QObject für Signal-Support
 
         # KEIN Timer mehr nötig! Signals werden sofort im Haupt-Thread verarbeitet
 
+
     def choose_path(self):
         """Qt FileDialog für PySide"""
         pfad = QFileDialog.getExistingDirectory(
             self.view,
             "Verzeichnis auswählen",
-            os.path.expanduser("~")  # 👈 Tilde wird zu C:/Users/name
+            os.path.expanduser("~")
         )
 
         if pfad:
-            # Backslashes korrigieren
-            pfad = pfad.replace('\\', '/')
+            # Plattformabhängige Pfadnormalisierung mit platform
+            if platform.system() == "Windows":
+                # Windows: Backslashes und ESCAPEN für Python-Strings!
+                pfad = pfad.replace('/', '\\')  # Erst normalisieren
+            else:
+                # Linux/Mac: Forward Slashes
+                pfad = pfad.replace('\\', '/')
 
             self.update_path_signal.emit(pfad)
             self.path_selected_ui = pfad
