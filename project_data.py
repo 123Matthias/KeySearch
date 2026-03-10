@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 import psutil
 
@@ -30,9 +31,15 @@ class ProjectData:
             process_cores = physical_cores
         elif logical_cores is not None:
             process_cores = logical_cores
-        print(
-            f"Physische Kerne: {physical_cores or 'nicht erkannt'}\n"
-            f"Logische Kerne: {logical_cores or 'nicht erkannt'}\n"
-            f"Verwende für Prozesse: {process_cores}"
-        )
         return process_cores
+
+    @classmethod
+    def get_used_cores(cls):
+        """80% der verfügbaren Cores nutzen, mindestens 1"""
+        used = math.floor(cls.get_process_cores() * 0.8)
+        used = 1 if used < 1 else used
+        return used
+
+    @classmethod
+    def get_threads_count(cls):
+        return 4

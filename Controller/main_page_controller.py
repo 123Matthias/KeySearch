@@ -24,6 +24,7 @@ class MainPageController(QObject):  # QObject für Signal-Support
     update_path_signal = Signal(str)
     show_status_signal = Signal(str, str)  # message, typ
     search_finished_signal = Signal(bool)
+    matches_count_signal = Signal(int)
 
     def __init__(self):
         super().__init__()  # QObject Init aufrufen
@@ -35,14 +36,14 @@ class MainPageController(QObject):  # QObject für Signal-Support
         self.search_recursive = True
         self.all_files_cache = []
         self.path_selected_ui = None
+        self.matches = 0
 
         # KEINE Queue mehr nötig! PySide6 Signals sind thread-sicher
         # self.ui_update_queue = deque()  # 👈 WEG DAMIT!
 
         # Multiprocessing berechnen der Process Counts
-        cpu_cores = ProjectData.get_process_cores()
-        self.num_processes = max(1, cpu_cores - 2)  # Min 1 Kern für UI frei lassen
-        self.threads_per_process = 4  # Mehr Threads für I/O TODO User könnte das selbst steuern
+        self.num_processes = ProjectData.get_used_cores()
+        self.threads_per_process = ProjectData.get_threads_count()  # Mehr Threads für I/O TODO User könnte das selbst steuern
         print(f"Performance: {self.num_processes} Prozesse mit je {self.threads_per_process} Threads")
 
 
@@ -72,6 +73,7 @@ class MainPageController(QObject):  # QObject für Signal-Support
         self.show_status_signal.connect(view.show_status)
         self.search_finished_signal.connect(view.sort_results)
         self.search_finished_signal.connect(view.refresh_results_display)
+        self.matches_count_signal.connect(view.set_matches_count)
 
         # KEIN Timer mehr nötig! Signals werden sofort im Haupt-Thread verarbeitet
 
@@ -99,6 +101,8 @@ class MainPageController(QObject):  # QObject für Signal-Support
 
     def search(self, event=None):
         keywords = self.view.keywords_input.text()
+        # reset matches
+        self.matches = 0
         search_depth = int(self.view.search_depth_input.text()) if self.view.search_depth_input.text().isdigit() else 1000 # default einfach 1000
         self.view.search_depth_input.setText(str(search_depth))
 
@@ -168,6 +172,8 @@ class MainPageController(QObject):  # QObject für Signal-Support
                 abs_path = os.path.abspath(match[1])
                 filename = os.path.basename(match[1])
                 rel_path = os.path.relpath(abs_path, self.path_selected_ui)
+                self.matches += 1
+                self.matches_count_signal.emit(self.matches)
                 # DIREKTES Signal - sofortige Anzeige!
                 self.add_result_signal.emit(match[0], filename, f"Fundort: {rel_path}", "filename", abs_path)
 
@@ -238,6 +244,8 @@ class MainPageController(QObject):  # QObject für Signal-Support
 
                             # Formatiere und sende an GUI!
                             text = f"'...{kontext}..."
+                            self.matches += 1
+                            self.matches_count_signal.emit(self.matches)
                             self.add_result_signal.emit(priority, filename, text, "content", abs_path)  # ✨ AN DIE GUI!
 
                     except:

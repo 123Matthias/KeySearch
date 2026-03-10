@@ -18,6 +18,8 @@ from Service.explorer_service import ExplorerService
 
 from View.gui_console import GUIConsole
 from View.theme_manager import ThemeManager
+from project_data import ProjectData
+from stylesheet.app_colors import DarkColors, LightColors
 
 
 class AnimatedToggle(QPushButton):
@@ -139,35 +141,6 @@ class SearchResultCard(QFrame):
 
         self.update_style() # Style Update immer am Ende
 
-    def enterEvent(self, event):
-        """Maus über der Card"""
-        # Farbe je nach checked-State
-        color = self.colors.Primary.CLICKED.name() if self.checked else self.colors.Primary.MAIN.name()
-
-        self.title_label.setStyleSheet(f"""
-            font-size: 16px;
-            font-weight: bold;
-            color: {color};
-            background-color: none;
-            text-decoration: underline;
-        """)
-
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        """Maus verlässt Card"""
-        # Farbe je nach checked-State
-        color = self.colors.Primary.CLICKED.name() if self.checked else self.colors.Primary.MAIN.name()
-
-        self.title_label.setStyleSheet(f"""
-            font-size: 16px;
-            font-weight: bold;
-            color: {color};
-            background-color: none;
-            text-decoration: none;
-        """)
-
-        super().leaveEvent(event)
 
     def mousePressEvent(self, event):
         self.clicked.emit(self.rel_path)
@@ -250,6 +223,7 @@ class SearchResultCard(QFrame):
 
 class MainPage(QMainWindow):
 
+
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
@@ -268,6 +242,10 @@ class MainPage(QMainWindow):
         # Fenster-Setup
         self.setWindowTitle("")
         self.setMinimumSize(1000, 700)
+
+        # Scroll Attribute für scroll down lazy loading
+        self.scroll_busy = False
+        self.last_scroll_value = 0
 
         # Zentrales Widget und Hauptlayout
         self.central_widget = QWidget()
@@ -288,17 +266,21 @@ class MainPage(QMainWindow):
         # Haupt-Splitter für Ergebnisse und Konsole
         self.setup_main_splitter(self.main_layout)
 
-
-
-        # Variablen für Animationen
         self.console_visible = True
         self.progress_animation = None
-        self.result_count = 0
+        self.matches_count = 0
+
+        self.setup_footer()
 
         # Keyboard Shortcuts
         self.setup_keyboard_shortcuts()
 
         self.update_all_widgets_style() # Alle Gui Elemente Style laden
+
+    def set_matches_count(self, count):
+        self.matches_count = count
+        self.update_footer_stats()
+
 
     def setup_keyboard_shortcuts(self):
         """Keyboard-Navigation einrichten"""
@@ -342,6 +324,7 @@ class MainPage(QMainWindow):
         self.eek_label = QLabel("eek")
 
 
+        title_layout.addWidget(self.key_label)
         title_layout.addWidget(self.key_label)
         title_layout.addWidget(s_label)
         title_layout.addWidget(self.eek_label)
@@ -451,6 +434,8 @@ class MainPage(QMainWindow):
 
         self.toggle_console(False)  # Nachdem es den Splitter gibt soll er togglen damit Console unsichtbar ist.
 
+
+
     def setup_results_area(self):
         """Scrollbarer Bereich für Ergebnisse mit Empty State"""
         colors = ThemeManager().get_colors()
@@ -464,6 +449,7 @@ class MainPage(QMainWindow):
         self.results_layout.setAlignment(Qt.AlignTop)
         self.results_layout.setSpacing(10)
         self.results_layout.setContentsMargins(10, 10, 10, 10)
+        self.cards_array_results_layout:list[SearchResultCard] = []
 
         # Empty State Label (wird beim Hinzufügen von Ergebnissen versteckt)
         self.empty_state_label = QLabel("Noch keine Suchergebnisse...")
@@ -472,6 +458,9 @@ class MainPage(QMainWindow):
         self.results_layout.addWidget(self.empty_state_label)
 
         self.results_scroll.setWidget(self.results_container)
+
+        # 🔥 Scroll-Erkennung HIER am Ende!
+        self.results_scroll.verticalScrollBar().valueChanged.connect(self.on_scroll_down)
 
     def setup_console_area(self):
         """Konsolen-Bereich mit besseres Layout"""
@@ -492,6 +481,7 @@ class MainPage(QMainWindow):
 
         # Stelle sicher, dass die Console beim Schließen restored wird
         self.destroyed.connect(self.console.restore)
+
 
 
     def toggle_console(self, checked):
@@ -531,22 +521,59 @@ class MainPage(QMainWindow):
 
         def _add():
             # Verstecke Empty State beim ersten Ergebnis
-            if self.result_count == 0:
+            if self.empty_state_label.isVisible():
                 self.empty_state_label.setVisible(False)
 
             # Erstelle Card
             card = SearchResultCard(priority, title, body, treffer_typ, abs_path)
             card.clicked.connect(lambda path=abs_path: self.open_file(path))
 
-            # Einfach nur hinzufügen - fertig!
-            self.results_layout.addWidget(card)
-            self.result_count += 1
+            # 🔥 ALLE Cards speichern
+            self.cards_array_results_layout.append(card)
+
+            # 🔥 Nur erste 10 anzeigen
+            if len(self.cards_array_results_layout) <= 10:
+                self.results_layout.addWidget(card)
 
         # Thread-sichere Ausführung
         if threading.current_thread() is threading.main_thread():
             _add()
         else:
             QTimer.singleShot(0, _add)
+
+    def on_scroll_down(self, value):
+        # Verhindere zu viele Events
+        if self.scroll_busy:
+            return
+
+        # Wenn alle Ergebnisse geladen, gar nichts tun
+        if self.results_layout.count() >= len(self.cards_array_results_layout):
+            return
+
+        # Nur alle 50px prüfen (verhindert Micro-Scrolling)
+        if abs(value - self.last_scroll_value) < 50:
+            return
+
+        self.last_scroll_value = value
+        scrollbar = self.results_scroll.verticalScrollBar()
+
+        if value >= scrollbar.maximum() - 150:
+            self.scroll_busy = True
+            self.load_more_results()
+
+            # Kurze Pause bevor nächster Scroll erlaubt wird
+            QTimer.singleShot(300, lambda: setattr(self, 'scroll_busy', False))
+
+    def load_more_results(self):
+        aktuell_angezeigt = self.results_layout.count()
+
+        if aktuell_angezeigt >= len(self.cards_array_results_layout):
+            self.scroll_busy = False
+            return
+
+        end = min(aktuell_angezeigt + 10, len(self.cards_array_results_layout))
+        for i in range(aktuell_angezeigt, end):
+            self.results_layout.addWidget(self.cards_array_results_layout[i])
 
     def refresh_results_display(self):
         """Erzwingt ein komplettes Neu-Rendern der Ergebnisse"""
@@ -557,28 +584,181 @@ class MainPage(QMainWindow):
         self.results_scroll.repaint()
 
         # Optional: Kleines Debug
-        print(f"📊 Ergebnisse neu gerendert: {self.result_count} Karten")
+        print(f"📊 Ergebnisse neu gerendert: {self.matches_count} Karten")
 
     def sort_results(self):
-        # 1. Sammle alle Karten außer empty_state_label
-        cards = []
-        for i in range(self.results_layout.count()):
-            widget = self.results_layout.itemAt(i).widget()
-            if widget and widget != self.empty_state_label:
-                cards.append(widget)
+        # Alle Cards sortieren
+        self.cards_array_results_layout.sort(
+            key=lambda c: c.priority,
+            reverse=True
+        )
 
-        # 2. Sortiere nach priority absteigend
-        cards.sort(key=lambda c: getattr(c, 'priority', 0), reverse=True)
-
-        # 3. Layout leeren (außer empty_state_label)
+        # Nur Widgets aus Layout entfernen, nicht löschen!
         for i in reversed(range(self.results_layout.count())):
             widget = self.results_layout.itemAt(i).widget()
             if widget and widget != self.empty_state_label:
                 self.results_layout.removeWidget(widget)
+                widget.setParent(None)  # Wichtig!
 
-        # 4. Sortierte Widgets wieder hinzufügen
-        for card in cards:
+        # Erste 10 wieder anzeigen
+        for card in self.cards_array_results_layout[:10]:
             self.results_layout.addWidget(card)
+
+        # Empty State verstecken
+        self.empty_state_label.setVisible(False)
+
+    def setup_footer(self):
+        """Footer mit Text-Labels für Core-Informationen"""
+
+        # Footer Widget
+        self.footer = QWidget()
+        self.footer.setObjectName("footer")
+
+        # Layout
+        layout = QHBoxLayout(self.footer)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+
+        # ===== LINKS: Core-Infos =====
+        left_layout = QHBoxLayout()
+        left_layout.setSpacing(0)
+
+        # Physical Cores
+        self.physical_label = QLabel("physical_cores:")
+        self.physical_label.setObjectName("physicalLabel")
+
+        phys, _ = ProjectData._get_physical_and_logical_cores()
+        self.physical_count = QLabel(str(phys) if phys else "?")
+        self.physical_count.setObjectName("physicalCount")
+
+        # Logical Cores
+        self.logical_label = QLabel("logical_cores:")
+        self.logical_label.setObjectName("logicalLabel")
+
+        _, logical = ProjectData._get_physical_and_logical_cores()
+        self.logical_count = QLabel(str(logical))
+        self.logical_count.setObjectName("logicalCount")
+
+        # Used Cores (80%)
+        self.used_label = QLabel("used_cores:")
+        self.used_label.setObjectName("processesLabel")
+
+        used = ProjectData.get_used_cores()
+        self.used_count = QLabel(str(used))
+        self.used_count.setObjectName("usedCount")
+
+        # Threads
+        self.threads_label = QLabel("Threads:")
+        self.threads_label.setObjectName("threadsLabel")
+
+        self.threads_count = QLabel(str(ProjectData.get_threads_count()))
+        self.threads_count.setObjectName("threadsCount")
+
+        # Core-Infos ins linke Layout
+        left_layout.addWidget(self.physical_label)
+        left_layout.addWidget(self.physical_count)
+        left_layout.addWidget(self.logical_label)
+        left_layout.addWidget(self.logical_count)
+        left_layout.addWidget(self.used_label)
+        left_layout.addWidget(self.used_count)
+        left_layout.addWidget(self.threads_label)
+        left_layout.addWidget(self.threads_count)
+        left_layout.addStretch()
+
+        # ===== RECHTS: Matches =====
+        right_layout = QHBoxLayout()
+        right_layout.setSpacing(0)
+
+        self.matches_label = QLabel("Matches:")
+        self.matches_label.setObjectName("matchesLabel")
+
+        self.matches_label_value = QLabel(str(self.matches_count))
+        self.matches_label_value.setObjectName("matchesLabelValue")
+
+        right_layout.addWidget(self.matches_label)
+        right_layout.addWidget(self.matches_label_value)
+
+        # Haupt-Layout zusammenbauen
+        layout.addLayout(left_layout, 1)  # 1 = Dehnungsfaktor
+        layout.addLayout(right_layout, 0)  # 0 = feste Größe
+
+        # Initiales Theming
+        self.update_footer_style()
+
+        # Footer ins Hauptlayout
+        self.main_layout.addWidget(self.footer)
+
+    def update_footer_style(self):
+        """Komplettes Footer-Styling über ein einziges Stylesheet"""
+
+        self.footer.setStyleSheet(f"""
+            #footer {{
+                background-color: {self.colors.UI.CONTAINER_BG.name()};
+                border-top: 2px solid {self.colors.UI.INPUT_BORDER.name()};
+            }}
+
+            /* Labels (Physical:, Logical:, etc.) */
+            #physicalLabel, #logicalLabel, #processesLabel, #threadsLabel {{
+                color: {self.colors.Text.SECONDARY.name()};
+                font-size: 11px;
+                padding: 2px 0px 2px 8px;
+                background: transparent;
+                     margin: 0px 0px 0px 0px;
+            }}
+
+            /* Core-Zahlen */
+            #physicalCount, #logicalCount, #threadsCount {{
+                color: {self.colors.Text.PRIMARY.name()};
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px 4px 2px 0px;
+                background: transparent;
+                margin: 0px 0px 0px 0px;
+            }}
+
+            /* Used-Zahl in Grün */
+            #usedCount {{
+                color: {self.colors.Primary.MAIN.name()};
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px 12px 2px 0px;
+                background: transparent;
+            }}
+
+            /* ===== RECHTS: Matches größer ===== */
+            #matchesLabel {{
+                color: {self.colors.Text.SECONDARY.name()};
+                font-size: 14px;
+                font-weight: normal;
+                padding: 2px;
+                background: transparent;
+            }}
+
+            #matchesLabelValue {{
+                color: {self.colors.Secondary.MAIN.name()};
+                font-size: 18px;
+                font-weight: bold;
+                padding: 2px 8px 2px 2px;
+                background: transparent;
+            }}
+
+            QLabel {{
+                background: transparent;
+            }}
+        """)
+
+    def update_footer_stats(self):
+        """Footer-Statistiken aktualisieren"""
+        self.matches_label_value.setText(str(self.matches_count))
+
+        phys, logical = ProjectData._get_physical_and_logical_cores()
+        self.physical_count.setText(str(phys) if phys else "?")
+        self.logical_count.setText(str(logical))
+
+        used = ProjectData.get_used_cores()
+        self.used_count.setText(str(used))
+
+        self.threads_count.setText(str(ProjectData.get_threads_count()))
 
     def open_file(self, path):
         import subprocess
@@ -609,6 +789,7 @@ class MainPage(QMainWindow):
         except Exception as e:
             print(f"❌ Fehler beim Öffnen: {e}")
 
+
     def clear_results(self):
         """Alle Ergebnisse löschen"""
 
@@ -619,14 +800,19 @@ class MainPage(QMainWindow):
                 if widget and widget != self.empty_state_label:
                     widget.deleteLater()
 
-            # Zeige Empty State wieder
+            # 🔥 Array leeren
+            self.cards_array_results_layout.clear()
+
+            self.matches_count = 0
             self.empty_state_label.setVisible(True)
-            self.result_count = 0
+            self.update_footer_stats()
 
         if threading.current_thread() is threading.main_thread():
             _clear()
         else:
-            QTimer.singleShot(0, _clear)
+            QTimer.singleShot(0, lambda: _clear())
+
+
 
     def show_status(self, message, typ="info"):
         """Status anzeigen (angepasst für PySide)"""
@@ -932,6 +1118,7 @@ class MainPage(QMainWindow):
         self.update_results_scroll_style()
         self.update_empty_state_label_style()
         self.update_console_label_style()
+        self.update_footer_style()
 
         print("✅ Alle Widget-Styles aktualisiert")
 

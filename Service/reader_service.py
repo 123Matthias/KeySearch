@@ -124,34 +124,62 @@ class ReaderService:
             return None
 
     # ===== PDF =====
+
     def _extract_pdf(self, filepath: str, max_chars: Optional[int] = None) -> str:
-        """PDF-Extraktion mit PyMuPDF - bricht bei max_chars ab."""
+        """PDF-Extraktion mit PyMuPDF - erste Seite immer komplett, danach max_chars beachten."""
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"PDF-Datei nicht gefunden: {filepath}")
+
+        doc = None
         try:
             doc = fitz.open(filepath)
             text_parts = []
             total_chars = 0
 
             for page_num in range(len(doc)):
-                if max_chars and total_chars >= max_chars:
-                    break
-
-                page = doc[page_num]
+                page = doc.load_page(page_num)
                 page_text = page.get_text()
 
-                if max_chars:
-                    remaining = max_chars - total_chars
-                    if len(page_text) > remaining:
-                        page_text = page_text[:remaining]
+                # Prüfen, ob überhaupt noch Platz ist (für Performance)
+                if max_chars is not None and total_chars >= max_chars:
+                    break
 
-                text_parts.append(page_text)
-                total_chars += len(page_text)
+                if page_num == 0:
+                    # erste Seite immer komplett lesen
+                    text_parts.append(page_text)
+                    total_chars += len(page_text)
+                else:
+                    # Für Folgeseiten: max_chars berücksichtigen
+                    if max_chars is not None:
+                        remaining = max_chars - total_chars
+                        if remaining <= 0:
+                            break
 
-            doc.close()
+                        if len(page_text) > remaining:
+                            # Nur Teil der Seite lesen
+                            page_text = page_text[:remaining]
+                            text_parts.append(page_text)
+                            total_chars += remaining
+                            break  # Abbruch, da max_chars erreicht
+                        else:
+                            # Ganze Seite passt noch
+                            text_parts.append(page_text)
+                            total_chars += len(page_text)
+                    else:
+                        # Kein Limit - ganze Seite lesen
+                        text_parts.append(page_text)
+                        total_chars += len(page_text)
+
             return "\n".join(text_parts)
 
         except Exception as e:
-            print(f"⚠️ PyMuPDF Fehler: {e}")
+            print(f"⚠️ PyMuPDF Fehler beim Lesen von {filepath}: {e}")
             raise
+        finally:
+            if doc:
+                doc.close()
+
+
 
     # ===== Textdateien =====
     def _extract_text_file(self, filepath: str, max_chars: Optional[int] = None) -> str:
