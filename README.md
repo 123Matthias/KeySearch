@@ -18,7 +18,7 @@ Ein Release zum Installieren sollte es bis 04 2026 geben.
 - **Multiprocessing und Multithreading** - für schnelles Suchen
 - **Dark Theme Light Theme** - kann mit Betriebssystem umgeschaltet werden
 - **Priority** - wird anhand der Stelle der Suchbegriffe berechnet (Max Muster Rechnung) = (3+2+1 ergibt Summe = 6) Das wird anschließend auf max. Priority 1.0 umgerechnet. Enthällt der Treffer nur (Muster) ist die Priority 2 / 6 = 0,33 gerundet 0,3. Siehe Screenshots unten. kann aber in den Einstellungen ausgeschaltet werden
-- **Einstellunge** - Menü zum Einstellen von Snippet größe, Default Wertenb für Suchtiefe, Default Path, Sprache und Snippet Größe. 
+- **Einstellunge** - Menü zum Einstellen von Default Werten für Suchtiefe, Snippet Größe, Path und Sprache. 
 - **Content Search** - wenn der Wert der berechneten Priorität unter 0,5 von maximal 1,0 ist wird die Content Suche gemacht. über 0,5 ist es ein Filename Treffer und die Contentsuche wird übersprungen. Findet er im Filepath (Filename) gar nichts wird die Contentsuche immer gemacht.
 - **Language Pack** - wird mit json files gemacht. Das .json wird geladen bspw English.json und mit einer Language.get() methode gelesen. In den Einstellungen gibs ein Dropdown das alle xy.json Dateinamen liest und in die Liste schreibt.
 
