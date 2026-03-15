@@ -16,9 +16,10 @@ Alpha version available now in the [Releases](https://github.com/123Matthias/sel
 
 1. Download the latest .app file from Releases (.dmg)
 2. Drag and drop SelfSearch.app into your Applications folder on MacOSX
-3. First launch: Apple Security Alert will appear. Go to **System Settings** → **Privacy & Security**
-4. Scroll down and click **"Open Anyway"**
-5. Done! The app will now open normally from your Applications folder
+3. First launch: Apple Security Alert will appear. **Click Ok NOT Delete**.
+4. Go to **System Settings** → **Privacy & Security**
+5. Scroll down and click **"Open Anyway"**
+6. Done! The app will now open normally from your Applications folder
 
 ## Windows Version
 
