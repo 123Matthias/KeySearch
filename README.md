@@ -1,9 +1,9 @@
-# SelfSearch App
+# FileSearch App
 
 **Desktop search engine for Mac (Windows coming soon)**
 
 A desktop application for recursively searching file contents inside a selected folder.  
-Alpha version available now in the [Releases](https://github.com/123Matthias/selfSearch/releases) area.
+Alpha version available now in the [Releases](https://github.com/123Matthias/FileSearch/releases) area.
 
 ## Features
 
@@ -15,7 +15,7 @@ Alpha version available now in the [Releases](https://github.com/123Matthias/sel
 ## Installation (macOS)
 
 1. Download the latest .app file from Releases (.dmg)
-2. Drag and drop SelfSearch.app into your Applications folder on MacOSX
+2. Drag and drop FileSearch.app into your Applications folder on MacOSX
 3. First launch: Apple Security Alert will appear. **Click Ok NOT Delete**.
 4. Go to **System Settings** → **Privacy & Security**
 5. Scroll down and click **"Open Anyway"**
