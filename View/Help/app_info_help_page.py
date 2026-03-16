@@ -28,7 +28,7 @@ class AppInfoHelpPage(QDialog):
         """)
 
         # App Name
-        title = QLabel("SelfSearch")
+        title = QLabel("FileSearch")
         title.setStyleSheet(f"""
             font-size: 24px; 
             font-weight: bold; 
@@ -85,7 +85,7 @@ class AppInfoHelpPage(QDialog):
             github_logo.setStyleSheet(f"font-size: 16px; color: {colors.Text.SECONDARY.name()};")
 
         # GitHub Text
-        github_text = "https://github.com/123Matthias/selfSearch"
+        github_text = "https://github.com/123Matthias/FileSearch"
         github_link = QLabel(f"{github_text}")
         github_link.setStyleSheet(f"""
             font-size: 11px;

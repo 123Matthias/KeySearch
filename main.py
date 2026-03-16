@@ -9,19 +9,38 @@ from View.theme_manager import ThemeManager
 from project_data import ProjectData
 from language import Language
 from settings import Settings
+import os
+import sys
+import platform
 
-# Auf das Verzeichnis der EXE/App wechseln
-if getattr(sys, 'frozen', False):
-    # Wir sind in einer PyInstaller-Binary
-    # Gehe von MacOS/ nach Resources/
-    base_path = os.path.dirname(sys.executable)
-    work_path = os.path.join(base_path, '..', 'Resources')
-    os.chdir(work_path)
-    print(f"✅ Arbeitsverzeichnis: {work_path}")  # Zum Debuggen
-else:
-    # Wir sind im Entwicklungsmodus
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    print(f"✅ Entwicklungsmodus: {os.getcwd()}")
+
+def get_base_path():
+    """Ermittelt den korrekten Basis-Pfad für die jeweilige Plattform"""
+    if getattr(sys, 'frozen', False):
+        # Wir sind in einer PyInstaller-Binary
+        if platform.system() == 'Darwin':  # macOS
+            # MacOS: app/Contents/MacOS/executable -> app/Contents/Resources/
+            base_path = os.path.dirname(sys.executable)
+            resources_path = os.path.join(base_path, '..', 'Resources')
+            return os.path.abspath(resources_path)
+
+        elif platform.system() == 'Windows':
+            # Windows: EXE liegt in dist/selfSearch/, Daten in dist/selfSearch/_internal/
+            exe_path = os.path.dirname(sys.executable)
+            internal_path = os.path.join(exe_path, '_internal')
+            return os.path.abspath(internal_path)
+
+        else:  # Linux
+            return os.path.dirname(sys.executable)
+    else:
+        # Entwicklungsmodus - Verzeichnis der Python-Datei
+        return os.path.dirname(os.path.abspath(__file__))
+
+# Arbeitsverzeichnis setzen
+base_path = get_base_path()
+os.chdir(base_path)
+print(f"✅ Arbeitsverzeichnis: {base_path}")
+print(f"✅ Plattform: {platform.system()}")
 
 
 class Main:
@@ -60,8 +79,8 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Search")
-    app.setApplicationDisplayName("Search")
+    app.setApplicationName("FileSearch")
+    app.setApplicationDisplayName("FileSearch")
 
     main_app = Main(app)
     sys.exit(main_app.run())

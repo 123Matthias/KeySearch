@@ -93,7 +93,10 @@ class GUIConsole(QWidget):
         """Wird von print aufgerufen"""
         with self.buffer_lock:
             self.buffer.append(text)
-        self.original_stdout.write(text)
+
+        # Sicherheits-Check: original_stdout könnte None sein!
+        if self.original_stdout is not None:
+            self.original_stdout.write(text)
 
     def flush(self):
         """Wird von print benötigt"""

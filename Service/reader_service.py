@@ -11,10 +11,9 @@ from pathlib import Path
 import fitz  # PyMuPDF - AGPL lizenziert
 
 # Word
-from docx import Document as DocxDocument
+from docx import Document
 
 # Excel
-import openpyxl
 import csv
 
 
@@ -234,7 +233,7 @@ class ReaderService:
     def _extract_word(self, filepath: str, max_chars: Optional[int] = None) -> str:
         """Word-Dokumente (.docx) - bricht bei max_chars ab."""
         try:
-            doc = DocxDocument(filepath)
+            doc = Document(filepath)
             text_parts = []
             total_chars = 0
 
