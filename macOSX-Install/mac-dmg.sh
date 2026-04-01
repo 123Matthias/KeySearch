@@ -1,8 +1,8 @@
 #!/bin/bash
 # build_dmg.sh - MIT CREATE-DMG (schöneres Layout)
 
-APP_NAME="SelfSearch"
-VERSION="0.0.0.alpha"
+APP_NAME="FileSearch"
+VERSION="v0.0.0-alpha"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 
 echo "📦 Erstelle DMG für $APP_NAME $VERSION mit create-dmg..."

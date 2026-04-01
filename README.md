@@ -35,9 +35,8 @@ Windows .exe coming soon
 
 ### PySide (currently used for the application, including QSS styling)
 
-![PySideDesign](assets/img/PySideDesignDark.png)  
-![PySideDesignConsoleEnabled](assets/img/PySideDesignDarkKonsole.png)  
-![PySideDesignLight](assets/img/PySideDesignLight.png)
+![PySideDesign](assets/img/FileSearch-App.gif)  
+
 
 ### bootstrapttk design (no longer used)
 

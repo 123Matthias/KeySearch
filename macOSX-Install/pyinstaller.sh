@@ -1,7 +1,7 @@
 #!/bin/bash
 
 build_app() {
-    local APP_NAME="selfSearch"
+    local APP_NAME="FileSearch"
     local ICON="assets/img/logo.icns"
     
     # Alle Verzeichnisse (rekursiv)
